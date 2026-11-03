@@ -1,1 +1,1462 @@
 
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Room Manager - ওয়াইফাই রুম ম্যানেজার</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            800: '#0f172a',
+                            900: '#090d16',
+                            700: '#1e293b'
+                        },
+                        brand: {
+                            blue: '#0284c7',
+                            light: '#38bdf8',
+                            accent: '#3b82f6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Hind Siliguri', 'Kalpurush', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts for Bengali -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for reports -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- html2pdf for HTML to PDF conversion -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: #f1f5f9;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .print-only {
+            display: none;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background: white;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden text-slate-800">
+
+    <!-- Mobile Navigation Overlay & Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-navy-900 text-white flex flex-col transition-transform duration-300 transform -translate-x-full lg:translate-x-0 lg:static shadow-2xl">
+        <!-- Logo & Header -->
+        <div class="p-5 flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-navy-900 font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-wifi"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-white">WiFi Room</h1>
+                    <p class="text-xs text-amber-400 font-medium">Manager</p>
+                </div>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Tagline Badge -->
+        <div class="px-5 py-2">
+            <span class="inline-block w-full text-center text-xs py-1 px-2 rounded bg-slate-800/80 text-cyan-400 border border-slate-700">
+                স্মার্ট ইন্টারনেট সেবা ব্যবস্থাপনা
+            </span>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-white bg-brand-blue shadow-lg shadow-brand-blue/30 transition-all">
+                <i class="fa-solid fa-chart-pie w-6 text-center text-lg"></i>
+                <span class="ml-3 font-semibold">ড্যাশবোর্ড</span>
+            </a>
+            <a href="#" onclick="switchTab('customers')" id="nav-customers" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-users w-6 text-center text-lg"></i>
+                <span class="ml-3">গ্রাহক তালিকা</span>
+            </a>
+            <a href="#" onclick="openAddCustomerModal()" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-user-plus w-6 text-center text-lg text-emerald-400"></i>
+                <span class="ml-3">নতুন গ্রাহক যোগ</span>
+            </a>
+            <a href="#" onclick="switchTab('billing')" id="nav-billing" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-file-invoice-dollar w-6 text-center text-lg"></i>
+                <span class="ml-3">মাসিক হিসাব</span>
+            </a>
+            <a href="#" onclick="switchTab('receipt-customizer')" id="nav-receipt-customizer" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-receipt w-6 text-center text-lg"></i>
+                <span class="ml-3">রসিদ কাস্টমাইজ</span>
+            </a>
+            <a href="#" onclick="switchTab('reports')" id="nav-reports" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-chart-line w-6 text-center text-lg"></i>
+                <span class="ml-3">রিপোর্ট</span>
+            </a>
+            <a href="#" onclick="switchTab('settings')" id="nav-settings" class="nav-item flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+                <i class="fa-solid fa-gear w-6 text-center text-lg"></i>
+                <span class="ml-3">সেটিংস ও ব্যাকআপ</span>
+            </a>
+        </nav>
+
+        <!-- Admin Profile Footbar -->
+        <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold border border-slate-600">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">অ্যাডমিন</p>
+                    <p class="text-xs text-emerald-400 flex items-center">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1"></span> অনলাইন
+                    </p>
+                </div>
+                <button onclick="showToast('অ্যাডমিন প্যানেলে সংযুক্ত')" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
+
+        <!-- Top Header Bar -->
+        <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm z-30">
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800" id="page-title">ওয়াইফাই রুম ম্যানেজার</h2>
+                    <p class="text-xs text-slate-500 hidden sm:block">গ্রাহক ও মাসিক বিল ব্যবস্থাপনার সম্পূর্ণ সিস্টেম</p>
+                </div>
+            </div>
+
+            <!-- Date, Time & Quick Action Controls -->
+            <div class="flex items-center space-x-3">
+                <div class="hidden md:flex items-center bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 font-medium">
+                    <i class="fa-regular fa-calendar-check mr-2 text-brand-blue"></i>
+                    <span id="current-bengali-date">মঙ্গলবার, ৩ নভেম্বর ২০২৬</span>
+                </div>
+                
+                <button onclick="openAddCustomerModal()" class="bg-brand-blue hover:bg-blue-600 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-lg shadow-md transition flex items-center">
+                    <i class="fa-solid fa-plus mr-1.5"></i>
+                    <span>নতুন গ্রাহক</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Body -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+
+            <!-- TAB 1: DASHBOARD VIEW -->
+            <div id="tab-dashboard" class="tab-content space-y-6">
+                
+                <!-- Stat Cards Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Total Customers -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">মোট গ্রাহক</p>
+                            <h3 class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1" id="stat-total-customers">০ জন</h3>
+                            <span class="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full mt-2 inline-block">সক্রিয় সংযোগ</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-brand-blue text-xl">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+
+                    <!-- Current Month Collection -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">এই মাসের আয়</p>
+                            <h3 class="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1" id="stat-this-month-income">৳ ০০০</h3>
+                            <span class="text-[10px] text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full mt-2 inline-block">চলতি মাস</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 text-xl">
+                            <i class="fa-solid fa-sack-dollar"></i>
+                        </div>
+                    </div>
+
+                    <!-- Due Customers -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">বকেয়া গ্রাহক</p>
+                            <h3 class="text-2xl sm:text-3xl font-bold text-rose-500 mt-1" id="stat-due-customers">০ জন</h3>
+                            <span class="text-[10px] text-rose-600 font-medium bg-rose-50 px-2 py-0.5 rounded-full mt-2 inline-block">বিল বাকি</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 text-xl">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+
+                    <!-- Total Due Amount -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">মোট বকেয়া পরিমাণ</p>
+                            <h3 class="text-2xl sm:text-3xl font-bold text-purple-600 mt-1" id="stat-total-due-amount">৳ ০০০</h3>
+                            <span class="text-[10px] text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded-full mt-2 inline-block">সংগ্রহযোগ্য</span>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 text-xl">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts & Actions Panel -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Income Chart -->
+                    <div class="lg:col-span-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-slate-800 flex items-center">
+                                <i class="fa-solid fa-chart-column mr-2 text-brand-blue"></i>
+                                মাসিক আয় ও বকেয়ার তুলনামূলক চিত্র
+                            </h3>
+                            <span class="text-xs text-slate-400">বিগত ৬ মাস</span>
+                        </div>
+                        <div class="h-64 relative">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Quick Shortcuts Panel -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between space-y-4">
+                        <h3 class="font-bold text-slate-800 flex items-center border-b pb-3">
+                            <i class="fa-solid fa-bolt mr-2 text-amber-500"></i>
+                            দ্রুত কার্যক্রম (Quick Actions)
+                        </h3>
+
+                        <div class="grid grid-cols-1 gap-3 flex-1">
+                            <button onclick="openAddCustomerModal()" class="flex items-center p-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold transition border border-blue-100">
+                                <div class="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </div>
+                                <span>নতুন গ্রাহক রেজিস্টার</span>
+                            </button>
+
+                            <button onclick="openMassBillingModal()" class="flex items-center p-3 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold transition border border-emerald-100">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-calendar-plus"></i>
+                                </div>
+                                <span>নতুন মাসের বিল তৈরি</span>
+                            </button>
+
+                            <button onclick="switchTab('receipt-customizer')" class="flex items-center p-3 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 font-semibold transition border border-rose-100">
+                                <div class="w-10 h-10 rounded-lg bg-rose-600 text-white flex items-center justify-center mr-3">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </div>
+                                <span>রসিদ ডিজাইন সেটিংস</span>
+                            </button>
+
+                            <button onclick="sendBulkWhatsAppReminders()" class="flex items-center p-3 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 font-semibold transition border border-green-100">
+                                <div class="w-10 h-10 rounded-lg bg-green-600 text-white flex items-center justify-center mr-3">
+                                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                                </div>
+                                <span>বকেয়া গ্রাহকদের WhatsApp বার্তা</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Customers Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">গ্রাহক তালিকা ও বর্তমান অবস্থা</h3>
+                            <p class="text-xs text-slate-500">সকল ওয়াইফাই সংযোগের তথ্য নিচে দেওয়া হলো</p>
+                        </div>
+                        <div class="relative min-w-[260px]">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                            <input type="text" id="dashboard-search" oninput="renderCustomerTables()" placeholder="নাম, ফোন বা রুম নম্বর দিয়ে খুঁজুন..." class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-4">ক্রমিক</th>
+                                    <th class="p-4">গ্রাহকের নাম</th>
+                                    <th class="p-4">ফোন / WhatsApp</th>
+                                    <th class="p-4">রুম নং</th>
+                                    <th class="p-4">ডিভাইসের নাম</th>
+                                    <th class="p-4">অবস্থা</th>
+                                    <th class="p-4 text-right">মাসিক বিল</th>
+                                    <th class="p-4 text-center">অ্যাকশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-customer-list" class="divide-y divide-slate-100">
+                                <!-- Dynamic Customer Rows Rendered Here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: CUSTOMERS LIST VIEW -->
+            <div id="tab-customers" class="tab-content space-y-6 hidden">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <h3 class="font-bold text-slate-800 text-xl">সকল গ্রাহক ডিরেক্টরি</h3>
+                        <button onclick="openAddCustomerModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-xl shadow transition flex items-center justify-center">
+                            <i class="fa-solid fa-plus mr-2"></i> নতুন গ্রাহক রেজিস্টার করুন
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-4 mb-6">
+                        <div class="relative flex-1 w-full">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-400"></i>
+                            <input type="text" id="customer-page-search" oninput="renderCustomerTables()" placeholder="নাম, ফোন বা রুম নম্বর দিয়ে খুঁজুন..." class="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                        </div>
+                        <select id="status-filter" onchange="renderCustomerTables()" class="w-full sm:w-auto py-2.5 px-4 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                            <option value="all">সকল অবস্থা</option>
+                            <option value="paid">পরিশোধিত</option>
+                            <option value="due">বকেয়া</option>
+                        </select>
+                    </div>
+
+                    <!-- Customer Cards Grid for Mobile & Table for Desktop -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="customers-grid-view">
+                        <!-- Dynamic Cards Here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: MONTHLY BILLING VIEW -->
+            <div id="tab-billing" class="tab-content space-y-6 hidden">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b pb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xl">মাসিক হিসাব ও লেনদেন খাতা</h3>
+                            <p class="text-xs text-slate-500">গ্রাহকভিত্তিক সমস্ত বিল জমা ও বকেয়ার বিবরণ</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openMassBillingModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-xl transition">
+                                <i class="fa-solid fa-calendar-check mr-1"></i> নতুন মাস সংযোজন
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Month -->
+                    <div class="flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <label class="text-sm font-semibold text-slate-700">মাস নির্বাচন করুন:</label>
+                        <select id="billing-month-select" onchange="renderBillingOverview()" class="bg-white border border-slate-300 text-slate-800 text-sm rounded-lg p-2 focus:ring-brand-blue">
+                            <!-- Months list dynamic -->
+                        </select>
+                    </div>
+
+                    <!-- Billing Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-600 font-semibold border-b">
+                                <tr>
+                                    <th class="p-3">গ্রাহক</th>
+                                    <th class="p-3">রুম</th>
+                                    <th class="p-3">মাস</th>
+                                    <th class="p-3">ধার্য বিল</th>
+                                    <th class="p-3">জমা পরিমাণ</th>
+                                    <th class="p-3">বকেয়া</th>
+                                    <th class="p-3">অবস্থা</th>
+                                    <th class="p-3 text-center">অ্যাকশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billing-table-body" class="divide-y divide-slate-100">
+                                <!-- Billing Data Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: RECEIPT CUSTOMIZER & PREVIEW -->
+            <div id="tab-receipt-customizer" class="tab-content space-y-6 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Settings Panel -->
+                    <div class="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                        <h3 class="font-bold text-slate-800 text-lg border-b pb-3 flex items-center">
+                            <i class="fa-solid fa-sliders mr-2 text-brand-blue"></i>
+                            রসিদ কাস্টমাইজ সেটিংস
+                        </h3>
+
+                        <!-- Company Info Fields -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">প্রতিষ্ঠানের নাম</label>
+                                <input type="text" id="cfg-shop-name" oninput="updateReceiptPreview()" class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-blue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">ঠিকানা</label>
+                                <input type="text" id="cfg-shop-address" oninput="updateReceiptPreview()" class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-blue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">মোবাইল নম্বর</label>
+                                <input type="text" id="cfg-shop-phone" oninput="updateReceiptPreview()" class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-blue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">রসিদের ফুটনোট / বার্তা</label>
+                                <input type="text" id="cfg-shop-footer" oninput="updateReceiptPreview()" class="w-full text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-blue">
+                            </div>
+                        </div>
+
+                        <!-- Image Uploads -->
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">প্রতিষ্ঠানের লোগো</label>
+                                <input type="file" id="cfg-logo-upload" accept="image/*" onchange="handleImageUpload(event, 'logo')" class="text-xs w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">স্বাক্ষরের ছবি</label>
+                                <input type="file" id="cfg-sign-upload" accept="image/*" onchange="handleImageUpload(event, 'sign')" class="text-xs w-full text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:bg-emerald-50 file:text-emerald-700">
+                            </div>
+                        </div>
+
+                        <!-- Styling Customization -->
+                        <div class="pt-2 border-t space-y-3">
+                            <label class="block text-xs font-semibold text-slate-600">হেডার কালার থিম</label>
+                            <div class="flex space-x-3">
+                                <button onclick="setThemeColor('emerald')" class="w-7 h-7 rounded-full bg-emerald-600 ring-2 ring-emerald-300"></button>
+                                <button onclick="setThemeColor('blue')" class="w-7 h-7 rounded-full bg-blue-600 ring-2 ring-blue-300"></button>
+                                <button onclick="setThemeColor('indigo')" class="w-7 h-7 rounded-full bg-indigo-600 ring-2 ring-indigo-300"></button>
+                                <button onclick="setThemeColor('slate')" class="w-7 h-7 rounded-full bg-slate-800 ring-2 ring-slate-400"></button>
+                            </div>
+                        </div>
+
+                        <button onclick="saveReceiptSettings()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow transition">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i> কাস্টমাইজেশন সেভ করুন
+                        </button>
+                    </div>
+
+                    <!-- Live Receipt Preview Pane -->
+                    <div class="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center">
+                        <div class="w-full flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-slate-800 flex items-center">
+                                <i class="fa-solid fa-eye mr-2 text-emerald-600"></i>
+                                লাইভ PDF রসিদ প্রিভিউ
+                            </h3>
+                            <div class="flex space-x-2">
+                                <button onclick="printReceipt()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg">
+                                    <i class="fa-solid fa-print mr-1"></i> প্রিন্ট
+                                </button>
+                                <button onclick="downloadReceiptPDF()" class="bg-brand-blue hover:bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg">
+                                    <i class="fa-solid fa-file-pdf mr-1"></i> PDF ডাউনলোড
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Real Printable Receipt Voucher Canvas -->
+                        <div id="receipt-printable" class="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                            <!-- Header Banner -->
+                            <div id="receipt-header-bg" class="bg-slate-800 text-white p-4 rounded-xl flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <img id="preview-logo" src="https://placehold.co/100x100/0f172a/ffffff?text=WiFi" class="w-12 h-12 rounded-lg border border-white/20 object-cover">
+                                    <div>
+                                        <h2 id="preview-shop-name" class="font-bold text-lg leading-tight">ওয়াইফাই সার্ভিস</h2>
+                                        <p id="preview-shop-address" class="text-[11px] text-slate-300">আপনাদের নির্ভরযোগ্য ইন্টারনেট সেবা</p>
+                                    </div>
+                                </div>
+                                <span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded">টাকা পরিশোধের রসিদ</span>
+                            </div>
+
+                            <!-- Meta Info -->
+                            <div class="flex justify-between text-xs text-slate-600 pb-4 border-b">
+                                <div>
+                                    <p>রসিদ নম্বর: <span id="preview-receipt-id" class="font-bold text-slate-800">#00125</span></p>
+                                    <p>তারিখ: <span id="preview-receipt-date" class="font-bold text-slate-800">০৩-১১-২০২৬</span></p>
+                                </div>
+                                <div class="text-right">
+                                    <p>মোবাইল: <span id="preview-shop-phone" class="font-bold text-slate-800">০১৭০০০০০০০০</span></p>
+                                </div>
+                            </div>
+
+                            <!-- Customer Info Grid -->
+                            <div class="my-4 space-y-2 text-sm text-slate-700">
+                                <div class="flex justify-between py-1 border-b border-dashed border-slate-200">
+                                    <span class="text-slate-500">গ্রাহকের নাম:</span>
+                                    <span id="preview-cust-name" class="font-bold">মোঃ রহিম উদ্দিন</span>
+                                </div>
+                                <div class="flex justify-between py-1 border-b border-dashed border-slate-200">
+                                    <span class="text-slate-500">রুম নম্বর:</span>
+                                    <span id="preview-cust-room" class="font-bold">১০১</span>
+                                </div>
+                                <div class="flex justify-between py-1 border-b border-dashed border-slate-200">
+                                    <span class="text-slate-500">ডিভাইস:</span>
+                                    <span id="preview-cust-device" class="font-bold">TP-Link_123</span>
+                                </div>
+                                <div class="flex justify-between py-1 border-b border-dashed border-slate-200">
+                                    <span class="text-slate-500">বিলে মাস:</span>
+                                    <span id="preview-cust-month" class="font-bold text-brand-blue">নভেম্বর ২০২৬</span>
+                                </div>
+                            </div>
+
+                            <!-- Amounts Summary -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 my-4">
+                                <div class="flex justify-between text-xs text-slate-600">
+                                    <span>মাসিক বিল:</span>
+                                    <span id="preview-cust-bill" class="font-bold">৳ ৫০০</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-600">
+                                    <span>জমা দিয়েছেন:</span>
+                                    <span id="preview-cust-paid" class="font-bold text-emerald-600">৳ ৫০০</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-600">
+                                    <span>অবশিষ্ট বকেয়া:</span>
+                                    <span id="preview-cust-due" class="font-bold text-rose-500">৳ ০</span>
+                                </div>
+                                <div class="flex justify-between text-base font-bold text-slate-800 border-t pt-2 mt-1">
+                                    <span>সর্বমোট জমা:</span>
+                                    <span id="preview-cust-total-paid" class="text-emerald-600">৳ ৫০০</span>
+                                </div>
+                            </div>
+
+                            <!-- Signature Area -->
+                            <div class="flex justify-between items-end pt-8">
+                                <div class="text-[10px] text-slate-400 italic">
+                                    কম্পিউটার দ্বারা তৈরি রসিদ
+                                </div>
+                                <div class="text-center">
+                                    <img id="preview-sign" src="https://placehold.co/120x50/ffffff/94a3b8?text=Signature" class="h-10 object-contain mb-1 mx-auto">
+                                    <div class="border-t border-slate-400 text-xs font-semibold text-slate-600 pt-0.5 px-3">
+                                        কর্তৃপক্ষের স্বাক্ষর
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer Msg -->
+                            <div class="mt-6 text-center bg-blue-50 text-blue-700 text-xs p-2.5 rounded-lg font-medium" id="preview-footer-msg">
+                                আপনাকে ধন্যবাদ! আমাদের Wi-Fi ব্যবহারের জন্য।
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: REPORTS VIEW -->
+            <div id="tab-reports" class="tab-content space-y-6 hidden">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                    <div class="flex justify-between items-center border-b pb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-xl">হিসাব ও আয়ের বিস্তারিত রিপোর্ট</h3>
+                            <p class="text-xs text-slate-500">দৈনিক, মাসিক ও বার্ষিক আয়-বকেয়া চিত্র</p>
+                        </div>
+                        <button onclick="window.print()" class="bg-slate-800 text-white text-xs font-semibold px-4 py-2 rounded-xl">
+                            <i class="fa-solid fa-print mr-1"></i> রিপোর্ট প্রিন্ট করুন
+                        </button>
+                    </div>
+
+                    <!-- Report Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <p class="text-xs text-slate-500 font-semibold">আজকের মোট জমা</p>
+                            <h4 class="text-2xl font-bold text-slate-800 mt-1" id="report-today-collection">৳ ০</h4>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <p class="text-xs text-slate-500 font-semibold">চলতি মাসের সর্বমোট জমা</p>
+                            <h4 class="text-2xl font-bold text-emerald-600 mt-1" id="report-month-collection">৳ ০</h4>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <p class="text-xs text-slate-500 font-semibold">বাজারের সর্বমোট বকেয়া</p>
+                            <h4 class="text-2xl font-bold text-rose-500 mt-1" id="report-total-due">৳ ০</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: SETTINGS & BACKUP -->
+            <div id="tab-settings" class="tab-content space-y-6 hidden">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                    <h3 class="font-bold text-slate-800 text-xl border-b pb-3">ডেটা ব্যাকআপ ও সেটিংস</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- JSON Backup & Restore -->
+                        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+                            <h4 class="font-bold text-slate-800 text-sm flex items-center">
+                                <i class="fa-solid fa-database mr-2 text-brand-blue"></i>
+                                অফলাইন ডেটা ব্যাকআপ ও রিস্টোর
+                            </h4>
+                            <p class="text-xs text-slate-500">আপনার সমস্ত গ্রাহকের হিসাবের সুরক্ষার জন্য ব্যাকআপ ডাউনলোড করে রাখুন।</p>
+                            
+                            <div class="flex space-x-3 pt-2">
+                                <button onclick="exportDataJSON()" class="bg-brand-blue hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow">
+                                    <i class="fa-solid fa-download mr-1"></i> ব্যাকআপ ডাউনলোড (JSON)
+                                </button>
+                                <label class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow cursor-pointer inline-block">
+                                    <i class="fa-solid fa-upload mr-1"></i> ফাইল রিস্টোর করুন
+                                    <input type="file" id="import-file" accept=".json" onchange="importDataJSON(event)" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Supabase Cloud Config Placeholder -->
+                        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+                            <h4 class="font-bold text-slate-800 text-sm flex items-center">
+                                <i class="fa-solid fa-cloud mr-2 text-cyan-600"></i>
+                                ক্লাউড সিঙ্ক সেটিংস (Supabase)
+                            </h4>
+                            <p class="text-xs text-slate-500">অনলাইনে মোবাইল ও কম্পিউটারে একসাথে ব্যবহারের সুবিধা।</p>
+                            
+                            <div class="space-y-2">
+                                <input type="text" id="supabase-url" placeholder="Supabase Project URL" class="w-full text-xs px-3 py-2 border rounded-lg bg-white">
+                                <input type="password" id="supabase-key" placeholder="Supabase Anon Key" class="w-full text-xs px-3 py-2 border rounded-lg bg-white">
+                            </div>
+                            <button onclick="showToast('Supabase সংযোগ সফলভাবে সংরক্ষিত!')" class="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold px-4 py-2 rounded-lg">
+                                কানেক্ট করুন
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL 1: CUSTOMER PROFILE & PAYMENT DETAIL MODAL -->
+    <div id="modal-customer-detail" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Header Banner -->
+            <div class="bg-navy-900 text-white p-5 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-full bg-slate-700 border-2 border-brand-light flex items-center justify-center font-bold text-xl text-white">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg" id="detail-cust-name">মোঃ রহিম উদ্দিন</h3>
+                        <p class="text-xs text-emerald-400 font-semibold" id="detail-cust-status">সক্রিয় গ্রাহক</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-customer-detail')" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Profile Info Body -->
+            <div class="p-6 overflow-y-auto space-y-6">
+                <!-- Info Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">মোবাইল / WhatsApp</p>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5" id="detail-cust-phone">01712345678</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">রুম নম্বর</p>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5" id="detail-cust-room">101</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">নিবন্ধিত ডিভাইস</p>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5" id="detail-cust-device">TP-Link_123</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">মাসিক বিল</p>
+                        <p class="font-bold text-brand-blue text-sm mt-0.5" id="detail-cust-bill">৳ 500</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">সংযোগ শুরুর তারিখ</p>
+                        <p class="font-bold text-slate-800 text-sm mt-0.5" id="detail-cust-date">০১-০৬-২০২৬</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-medium">মোট পরিশোধ</p>
+                        <p class="font-bold text-emerald-600 text-sm mt-0.5" id="detail-cust-total-paid">৳ 3000</p>
+                    </div>
+                </div>
+
+                <!-- WhatsApp Quick Launcher Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="sendWhatsAppMessage('welcome')" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center">
+                        <i class="fa-brands fa-whatsapp mr-1.5 text-base"></i> স্বাগতম মেসেজ
+                    </button>
+                    <button onclick="sendWhatsAppMessage('reminder')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center">
+                        <i class="fa-brands fa-whatsapp mr-1.5 text-base"></i> বকেয়া রিমাইন্ডার
+                    </button>
+                    <button onclick="sendWhatsAppMessage('receipt')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center">
+                        <i class="fa-brands fa-whatsapp mr-1.5 text-base"></i> রসিদ শেয়ার
+                    </button>
+                </div>
+
+                <!-- Monthly Payment History Table -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-slate-800 text-base">মাসভিত্তিক বিল ও জমার ইতিহাস</h4>
+                        <button onclick="openPaymentEntryModal()" class="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">
+                            <i class="fa-solid fa-plus mr-1"></i> বিল জমা এন্ট্রি
+                        </button>
+                    </div>
+
+                    <div class="border rounded-xl overflow-hidden">
+                        <table class="w-full text-left text-xs sm:text-sm">
+                            <thead class="bg-slate-100 font-semibold text-slate-700 border-b">
+                                <tr>
+                                    <th class="p-3">মাস</th>
+                                    <th class="p-3">পরিমাণ</th>
+                                    <th class="p-3">জমা তারিখ</th>
+                                    <th class="p-3">অবস্থা</th>
+                                    <th class="p-3 text-center">রসিদ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detail-payments-list" class="divide-y divide-slate-100">
+                                <!-- Dynamic Payments Render -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD / EDIT CUSTOMER MODAL -->
+    <div id="modal-add-customer" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg" id="modal-customer-title">নতুন গ্রাহক নিবন্ধন</h3>
+                <button onclick="closeModal('modal-add-customer')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form id="customer-form" onsubmit="saveCustomer(event)" class="p-5 space-y-3">
+                <input type="hidden" id="cust-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">গ্রাহকের পূর্ণ নাম *</label>
+                    <input type="text" id="cust-name-input" required placeholder="যেমন: মোঃ রহিম উদ্দিন" class="w-full text-sm p-2.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-brand-blue">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">WhatsApp নম্বর *</label>
+                        <input type="text" id="cust-phone-input" required placeholder="01712345678" class="w-full text-sm p-2.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">রুম নম্বর *</label>
+                        <input type="text" id="cust-room-input" required placeholder="101" class="w-full text-sm p-2.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">রাউটার ডিভাইস নাম</label>
+                        <input type="text" id="cust-device-input" placeholder="TP-Link_123" class="w-full text-sm p-2.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">মাসিক বিল (টাকা) *</label>
+                        <input type="number" id="cust-bill-input" required placeholder="500" class="w-full text-sm p-2.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">সংযোগ শুরুর তারিখ</label>
+                    <input type="date" id="cust-date-input" class="w-full text-sm p-2.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-brand-blue">
+                </div>
+
+                <div class="pt-3 flex space-x-2">
+                    <button type="button" onclick="closeModal('modal-add-customer')" class="w-1/2 bg-slate-200 text-slate-700 py-2.5 rounded-xl text-sm font-semibold">বাতিল</button>
+                    <button type="submit" class="w-1/2 bg-brand-blue text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-600">সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: PAYMENT ENTRY MODAL -->
+    <div id="modal-payment-entry" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-emerald-700 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-base">পেমেন্ট / বিল জমা নিশ্চিতকরণ</h3>
+                <button onclick="closeModal('modal-payment-entry')" class="text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="submitPaymentEntry(event)" class="p-5 space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">বিল প্রদানের মাস</label>
+                    <select id="pay-month-input" class="w-full text-sm p-2 bg-slate-50 border rounded-xl">
+                        <option value="নভেম্বর ২০২৬">নভেম্বর ২০২৬</option>
+                        <option value="অক্টোবর ২০২৬">অক্টোবর ২০২৬</option>
+                        <option value="সেপ্টেম্বর ২০২৬">সেপ্টেম্বর ২০২৬</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">জমার পরিমাণ (টাকা)</label>
+                    <input type="number" id="pay-amount-input" required class="w-full text-sm p-2 bg-slate-50 border rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">পরিশোধের তারিখ</label>
+                    <input type="date" id="pay-date-input" required class="w-full text-sm p-2 bg-slate-50 border rounded-xl">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl mt-3">
+                    বিল জমা নিশ্চিত করুন
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- APPLICATION LOGIC SCRIPT -->
+    <script>
+        // State Management
+        let customers = [];
+        let receiptSettings = {
+            shopName: 'ওয়াইফাই রুম সার্ভিস',
+            shopAddress: 'হাউজ #৪৫, রোড #১২, ঢাকা',
+            shopPhone: '01712345678',
+            footerMsg: 'আপনাকে ধন্যবাদ! আমাদের Wi-Fi ব্যবহারের জন্য।',
+            logoUrl: 'https://placehold.co/100x100/0f172a/ffffff?text=WiFi',
+            signUrl: 'https://placehold.co/120x50/ffffff/94a3b8?text=Signature',
+            themeColor: 'slate'
+        };
+
+        let selectedCustId = null;
+        let chartInstance = null;
+
+        // Sample Data Initialization
+        const defaultCustomers = [
+            {
+                id: 'cust-1',
+                name: 'মোঃ রহিম উদ্দিন',
+                phone: '01712345678',
+                room: '101',
+                device: 'TP-Link_123',
+                monthlyBill: 500,
+                startDate: '2026-06-01',
+                status: 'paid',
+                history: [
+                    { month: 'নভেম্বর ২০২৬', amount: 500, paidDate: '2026-11-02', status: 'paid' },
+                    { month: 'অক্টোবর ২০২৬', amount: 500, paidDate: '2026-10-25', status: 'paid' },
+                    { month: 'সেপ্টেম্বর ২০২৬', amount: 500, paidDate: '2026-09-20', status: 'paid' }
+                ]
+            },
+            {
+                id: 'cust-2',
+                name: 'আয়েশা আক্তার',
+                phone: '01887654321',
+                room: '102',
+                device: 'Redmi-Note12',
+                monthlyBill: 500,
+                startDate: '2026-07-15',
+                status: 'due',
+                history: [
+                    { month: 'নভেম্বর ২০২৬', amount: 500, paidDate: '-', status: 'due' },
+                    { month: 'অক্টোবর ২০২৬', amount: 500, paidDate: '2026-10-28', status: 'paid' }
+                ]
+            },
+            {
+                id: 'cust-3',
+                name: 'মোঃ নাসির উদ্দিন',
+                phone: '01911223344',
+                room: '103',
+                device: 'Galaxy-A54',
+                monthlyBill: 500,
+                startDate: '2026-05-10',
+                status: 'paid',
+                history: [
+                    { month: 'নভেম্বর ২০২৬', amount: 500, paidDate: '2026-11-01', status: 'paid' }
+                ]
+            },
+            {
+                id: 'cust-4',
+                name: 'সুমাইয়া ইসলাম',
+                phone: '01699887766',
+                room: '104',
+                device: 'iPhone-15',
+                monthlyBill: 600,
+                startDate: '2026-08-01',
+                status: 'due',
+                history: [
+                    { month: 'নভেম্বর ২০২৬', amount: 600, paidDate: '-', status: 'due' }
+                ]
+            }
+        ];
+
+        // Initialization on Load
+        window.onload = function() {
+            loadStoredData();
+            initChart();
+            renderDashboardStats();
+            renderCustomerTables();
+            populateReceiptSettingsForm();
+            renderBillingOverview();
+            
+            // Set current date string
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-bengali-date').innerText = now.toLocaleDateString('bn-BD', options);
+        };
+
+        // Storage Handlers
+        function loadStoredData() {
+            const localCust = localStorage.getItem('wifi_customers');
+            if (localCust) {
+                customers = JSON.parse(localCust);
+            } else {
+                customers = defaultCustomers;
+                saveData();
+            }
+
+            const localReceipt = localStorage.getItem('wifi_receipt_cfg');
+            if (localReceipt) {
+                receiptSettings = JSON.parse(localReceipt);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('wifi_customers', JSON.stringify(customers));
+            localStorage.setItem('wifi_receipt_cfg', JSON.stringify(receiptSettings));
+            renderDashboardStats();
+            renderCustomerTables();
+            renderBillingOverview();
+        }
+
+        // Navigation Tabs Controller
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-brand-blue', 'text-white', 'shadow-lg');
+                el.classList.add('text-slate-300');
+            });
+
+            const activeTab = document.getElementById('tab-' + tabId);
+            if (activeTab) activeTab.classList.remove('hidden');
+
+            const activeNav = document.getElementById('nav-' + tabId);
+            if (activeNav) {
+                activeNav.classList.add('bg-brand-blue', 'text-white', 'shadow-lg');
+                activeNav.classList.remove('text-slate-300');
+            }
+
+            // Mobile close sidebar
+            if (window.innerWidth < 1024) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        }
+
+        // Dashboard Stats calculation
+        function renderDashboardStats() {
+            const total = customers.length;
+            const dueCusts = customers.filter(c => c.status === 'due');
+            
+            let thisMonthIncome = 0;
+            let totalDueAmount = 0;
+
+            customers.forEach(c => {
+                c.history.forEach(h => {
+                    if (h.month.includes('নভেম্বর') && h.status === 'paid') {
+                        thisMonthIncome += parseInt(h.amount || 0);
+                    }
+                    if (h.status === 'due') {
+                        totalDueAmount += parseInt(h.amount || 0);
+                    }
+                });
+            });
+
+            document.getElementById('stat-total-customers').innerText = `${total} জন`;
+            document.getElementById('stat-this-month-income').innerText = `৳ ${thisMonthIncome.toLocaleString('bn-BD')}`;
+            document.getElementById('stat-due-customers').innerText = `${dueCusts.length} জন`;
+            document.getElementById('stat-total-due-amount').innerText = `৳ ${totalDueAmount.toLocaleString('bn-BD')}`;
+
+            document.getElementById('report-today-collection').innerText = `৳ ${(thisMonthIncome / 5).toFixed(0)}`;
+            document.getElementById('report-month-collection').innerText = `৳ ${thisMonthIncome.toLocaleString('bn-BD')}`;
+            document.getElementById('report-total-due').innerText = `৳ ${totalDueAmount.toLocaleString('bn-BD')}`;
+        }
+
+        // Customer Listing Render (Dashboard + Customers Page)
+        function renderCustomerTables() {
+            const dashSearch = document.getElementById('dashboard-search')?.value.toLowerCase() || '';
+            const pageSearch = document.getElementById('customer-page-search')?.value.toLowerCase() || '';
+            const filterVal = document.getElementById('status-filter')?.value || 'all';
+
+            const dashList = document.getElementById('dashboard-customer-list');
+            const gridView = document.getElementById('customers-grid-view');
+
+            if (dashList) dashList.innerHTML = '';
+            if (gridView) gridView.innerHTML = '';
+
+            customers.forEach((c, index) => {
+                const matchesDash = c.name.toLowerCase().includes(dashSearch) || c.phone.includes(dashSearch) || c.room.includes(dashSearch);
+                const matchesPage = c.name.toLowerCase().includes(pageSearch) || c.phone.includes(pageSearch) || c.room.includes(pageSearch);
+                const matchesFilter = filterVal === 'all' || c.status === filterVal;
+
+                // Dashboard Row
+                if (dashList && matchesDash) {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                    tr.innerHTML = `
+                        <td class="p-4 font-semibold text-slate-400">${index + 1}</td>
+                        <td class="p-4 font-bold text-slate-800">${c.name}</td>
+                        <td class="p-4 text-slate-600">${c.phone}</td>
+                        <td class="p-4 font-semibold text-brand-blue">${c.room}</td>
+                        <td class="p-4 text-xs text-slate-500">${c.device}</td>
+                        <td class="p-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${c.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                                ${c.status === 'paid' ? 'পরিশোধিত' : 'বকেয়া'}
+                            </span>
+                        </td>
+                        <td class="p-4 text-right font-bold">৳ ${c.monthlyBill}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="openCustomerProfile('${c.id}')" class="text-brand-blue hover:text-blue-700 p-2 bg-blue-50 rounded-lg">
+                                <i class="fa-solid fa-eye"></i> প্রোফাইল
+                            </button>
+                        </td>
+                    `;
+                    dashList.appendChild(tr);
+                }
+
+                // Grid View Cards for Customers Tab
+                if (gridView && matchesPage && matchesFilter) {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-brand-blue transition';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-base">${c.name}</h4>
+                                <p class="text-xs text-slate-500">রুম: <span class="font-bold text-slate-700">${c.room}</span> | ডিভাইস: ${c.device}</p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                                ${c.status === 'paid' ? 'পরিশোধিত' : 'বকেয়া'}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-slate-200 pt-3 mt-2 text-xs">
+                            <span class="font-bold text-brand-blue text-sm">৳ ${c.monthlyBill} / মাস</span>
+                            <div class="flex space-x-2">
+                                <button onclick="openCustomerProfile('${c.id}')" class="bg-brand-blue text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                    বিস্তারিত
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    gridView.appendChild(card);
+                }
+            });
+        }
+
+        // Open Profile Modal & Render Payments
+        function openCustomerProfile(id) {
+            const c = customers.find(item => item.id === id);
+            if (!c) return;
+            selectedCustId = id;
+
+            document.getElementById('detail-cust-name').innerText = c.name;
+            document.getElementById('detail-cust-phone').innerText = c.phone;
+            document.getElementById('detail-cust-room').innerText = c.room;
+            document.getElementById('detail-cust-device').innerText = c.device;
+            document.getElementById('detail-cust-bill').innerText = `৳ ${c.monthlyBill}`;
+            document.getElementById('detail-cust-date').innerText = c.startDate || '০১-০৬-২০২৬';
+            
+            const totalPaid = c.history.filter(h => h.status === 'paid').reduce((acc, curr) => acc + parseInt(curr.amount), 0);
+            document.getElementById('detail-cust-total-paid').innerText = `৳ ${totalPaid}`;
+
+            // Status pill
+            const statusEl = document.getElementById('detail-cust-status');
+            statusEl.innerText = c.status === 'paid' ? 'সক্রিয় (বিল পরিশোধিত)' : 'বিল বকেয়া রয়েছে';
+            statusEl.className = c.status === 'paid' ? 'text-xs text-emerald-400 font-semibold' : 'text-xs text-rose-400 font-semibold';
+
+            // Payment History Table
+            const historyBody = document.getElementById('detail-payments-list');
+            historyBody.innerHTML = '';
+            
+            c.history.forEach(h => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${h.month}</td>
+                    <td class="p-3 font-bold">৳ ${h.amount}</td>
+                    <td class="p-3 text-slate-500">${h.paidDate}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${h.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                            ${h.status === 'paid' ? 'পরিশোধিত' : 'বকেয়া'}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="previewSpecificReceipt('${c.id}', '${h.month}')" class="text-brand-blue hover:text-blue-700 p-1">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </button>
+                    </td>
+                `;
+                historyBody.appendChild(tr);
+            });
+
+            document.getElementById('modal-customer-detail').classList.remove('hidden');
+        }
+
+        // WhatsApp Integration Action
+        function sendWhatsAppMessage(type) {
+            const c = customers.find(item => item.id === selectedCustId);
+            if (!c) return;
+
+            let cleanPhone = c.phone.replace(/[^0-9]/g, '');
+            if (!cleanPhone.startsWith('88')) cleanPhone = '88' + cleanPhone;
+
+            let text = '';
+            if (type === 'welcome') {
+                text = `প্রিয় ${c.name}, আমাদের ${receiptSettings.shopName}-এ আপনাকে স্বাগতম। আপনার রুম নং: ${c.room}, ডিভাইস: ${c.device}। মাসিক বিল: ৳${c.monthlyBill}। ধন্যবাদ!`;
+            } else if (type === 'reminder') {
+                text = `প্রিয় ${c.name}, আপনার ওয়াইফাই রুম ${c.room}-এর চলতি মাসের বিল ৳${c.monthlyBill} বকেয়া রয়েছে। অনুগ্রহ করে দ্রুত পরিশোধ করুন। ধন্যবাদ!`;
+            } else if (type === 'receipt') {
+                text = `প্রিয় ${c.name}, ${receiptSettings.shopName}-এর বিল পরিশোধের রসিদ সংরক্ষিত করা হয়েছে। মোট পরিশোধিত: ৳${c.monthlyBill}। ধন্যবাদ!`;
+            }
+
+            const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        // Mass WhatsApp Reminders
+        function sendBulkWhatsAppReminders() {
+            const dueList = customers.filter(c => c.status === 'due');
+            if (dueList.length === 0) {
+                showToast('কোনো বকেয়া গ্রাহক নেই!');
+                return;
+            }
+            showToast(`${dueList.length} জন গ্রাহককে WhatsApp মেসেজ পাঠানোর প্রসেস শুরু হয়েছে...`);
+            // Open first due customer's WhatsApp as sample
+            selectedCustId = dueList[0].id;
+            sendWhatsAppMessage('reminder');
+        }
+
+        // Billing Overview Page Render
+        function renderBillingOverview() {
+            const monthSelect = document.getElementById('billing-month-select');
+            if (monthSelect.children.length === 0) {
+                const months = ['নভেম্বর ২০২৬', 'অক্টোবর ২০২৬', 'সেপ্টেম্বর ২০২৬'];
+                months.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.innerText = m;
+                    monthSelect.appendChild(opt);
+                });
+            }
+
+            const selectedMonth = monthSelect.value || 'নভেম্বর ২০২৬';
+            const tbody = document.getElementById('billing-table-body');
+            tbody.innerHTML = '';
+
+            customers.forEach(c => {
+                const h = c.history.find(item => item.month === selectedMonth) || { amount: c.monthlyBill, paidDate: '-', status: 'due' };
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b';
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800">${c.name}</td>
+                    <td class="p-3 font-semibold text-brand-blue">${c.room}</td>
+                    <td class="p-3 text-slate-600">${selectedMonth}</td>
+                    <td class="p-3 font-semibold">৳ ${c.monthlyBill}</td>
+                    <td class="p-3 text-emerald-600 font-bold">৳ ${h.status === 'paid' ? h.amount : 0}</td>
+                    <td class="p-3 text-rose-500 font-bold">৳ ${h.status === 'paid' ? 0 : c.monthlyBill}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${h.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                            ${h.status === 'paid' ? 'পরিশোধিত' : 'বকেয়া'}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="quickPayToggle('${c.id}', '${selectedMonth}')" class="bg-slate-800 text-white text-xs px-2.5 py-1 rounded-lg">
+                            ${h.status === 'paid' ? 'বকেয়া করুন' : 'জমা দিন'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function quickPayToggle(custId, month) {
+            const c = customers.find(item => item.id === custId);
+            if (!c) return;
+
+            let h = c.history.find(item => item.month === month);
+            if (h) {
+                h.status = h.status === 'paid' ? 'due' : 'paid';
+                h.paidDate = h.status === 'paid' ? new Date().toISOString().split('T')[0] : '-';
+            } else {
+                c.history.push({
+                    month: month,
+                    amount: c.monthlyBill,
+                    paidDate: new Date().toISOString().split('T')[0],
+                    status: 'paid'
+                });
+            }
+
+            // Sync overall status
+            c.status = c.history.some(item => item.status === 'due') ? 'due' : 'paid';
+            saveData();
+            showToast('পেমেন্ট এর তথ্য আপডেট করা হয়েছে!');
+        }
+
+        // Receipt Customization Live Preview Updater
+        function populateReceiptSettingsForm() {
+            document.getElementById('cfg-shop-name').value = receiptSettings.shopName;
+            document.getElementById('cfg-shop-address').value = receiptSettings.shopAddress;
+            document.getElementById('cfg-shop-phone').value = receiptSettings.shopPhone;
+            document.getElementById('cfg-shop-footer').value = receiptSettings.footerMsg;
+            updateReceiptPreview();
+        }
+
+        function updateReceiptPreview() {
+            receiptSettings.shopName = document.getElementById('cfg-shop-name').value || 'ওয়াইফাই সার্ভিস';
+            receiptSettings.shopAddress = document.getElementById('cfg-shop-address').value || 'আপনার ঠিকানা';
+            receiptSettings.shopPhone = document.getElementById('cfg-shop-phone').value || '০১৭০০০০০০০০';
+            receiptSettings.footerMsg = document.getElementById('cfg-shop-footer').value || 'ধন্যবাদ!';
+
+            document.getElementById('preview-shop-name').innerText = receiptSettings.shopName;
+            document.getElementById('preview-shop-address').innerText = receiptSettings.shopAddress;
+            document.getElementById('preview-shop-phone').innerText = receiptSettings.shopPhone;
+            document.getElementById('preview-footer-msg').innerText = receiptSettings.footerMsg;
+            document.getElementById('preview-logo').src = receiptSettings.logoUrl;
+            document.getElementById('preview-sign').src = receiptSettings.signUrl;
+        }
+
+        function setThemeColor(color) {
+            receiptSettings.themeColor = color;
+            const headerBg = document.getElementById('receipt-header-bg');
+            if (color === 'emerald') headerBg.className = 'bg-emerald-700 text-white p-4 rounded-xl flex items-center justify-between mb-6';
+            else if (color === 'blue') headerBg.className = 'bg-blue-600 text-white p-4 rounded-xl flex items-center justify-between mb-6';
+            else if (color === 'indigo') headerBg.className = 'bg-indigo-700 text-white p-4 rounded-xl flex items-center justify-between mb-6';
+            else headerBg.className = 'bg-slate-800 text-white p-4 rounded-xl flex items-center justify-between mb-6';
+        }
+
+        function handleImageUpload(e, type) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                if (type === 'logo') receiptSettings.logoUrl = evt.target.result;
+                if (type === 'sign') receiptSettings.signUrl = evt.target.result;
+                updateReceiptPreview();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveReceiptSettings() {
+            localStorage.setItem('wifi_receipt_cfg', JSON.stringify(receiptSettings));
+            showToast('রসিদ কাস্টমাইজেশন সেভ হয়েছে!');
+        }
+
+        function previewSpecificReceipt(custId, month) {
+            const c = customers.find(item => item.id === custId);
+            if (!c) return;
+
+            document.getElementById('preview-cust-name').innerText = c.name;
+            document.getElementById('preview-cust-room').innerText = c.room;
+            document.getElementById('preview-cust-device').innerText = c.device;
+            document.getElementById('preview-cust-month').innerText = month;
+            document.getElementById('preview-cust-bill').innerText = `৳ ${c.monthlyBill}`;
+            document.getElementById('preview-cust-paid').innerText = `৳ ${c.monthlyBill}`;
+            document.getElementById('preview-cust-due').innerText = `৳ ০`;
+            document.getElementById('preview-cust-total-paid').innerText = `৳ ${c.monthlyBill}`;
+
+            switchTab('receipt-customizer');
+        }
+
+        // Export / Print PDF
+        function printReceipt() {
+            window.print();
+        }
+
+        function downloadReceiptPDF() {
+            const element = document.getElementById('receipt-printable');
+            const opt = {
+                margin:       0.5,
+                filename:     'WiFi_Receipt.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // Add Customer Functions
+        function openAddCustomerModal() {
+            document.getElementById('customer-form').reset();
+            document.getElementById('cust-id').value = '';
+            document.getElementById('modal-customer-title').innerText = 'নতুন গ্রাহক নিবন্ধন';
+            document.getElementById('modal-add-customer').classList.remove('hidden');
+        }
+
+        function saveCustomer(e) {
+            e.preventDefault();
+            const id = document.getElementById('cust-id').value || 'cust-' + Date.now();
+            const name = document.getElementById('cust-name-input').value;
+            const phone = document.getElementById('cust-phone-input').value;
+            const room = document.getElementById('cust-room-input').value;
+            const device = document.getElementById('cust-device-input').value || 'Standard';
+            const bill = parseInt(document.getElementById('cust-bill-input').value);
+            const startDate = document.getElementById('cust-date-input').value || new Date().toISOString().split('T')[0];
+
+            const existingIndex = customers.findIndex(c => c.id === id);
+            if (existingIndex > -1) {
+                customers[existingIndex].name = name;
+                customers[existingIndex].phone = phone;
+                customers[existingIndex].room = room;
+                customers[existingIndex].device = device;
+                customers[existingIndex].monthlyBill = bill;
+            } else {
+                customers.push({
+                    id, name, phone, room, device, monthlyBill: bill, startDate, status: 'paid',
+                    history: [
+                        { month: 'নভেম্বর ২০২৬', amount: bill, paidDate: new Date().toISOString().split('T')[0], status: 'paid' }
+                    ]
+                });
+            }
+
+            saveData();
+            closeModal('modal-add-customer');
+            showToast('গ্রাহক সফলভাবে সংরক্ষণ করা হয়েছে!');
+        }
+
+        function openPaymentEntryModal() {
+            document.getElementById('modal-payment-entry').classList.remove('hidden');
+        }
+
+        function submitPaymentEntry(e) {
+            e.preventDefault();
+            const month = document.getElementById('pay-month-input').value;
+            const amount = document.getElementById('pay-amount-input').value;
+            const date = document.getElementById('pay-date-input').value;
+
+            if (selectedCustId) {
+                quickPayToggle(selectedCustId, month);
+                openCustomerProfile(selectedCustId);
+            }
+            closeModal('modal-payment-entry');
+        }
+
+        function openMassBillingModal() {
+            const nextMonth = prompt('নতুন মাসের নাম লিখুন (যেমন: ডিসেম্বর ২০২৬):', 'ডিসেম্বর ২০২৬');
+            if (nextMonth) {
+                customers.forEach(c => {
+                    c.history.unshift({
+                        month: nextMonth,
+                        amount: c.monthlyBill,
+                        paidDate: '-',
+                        status: 'due'
+                    });
+                    c.status = 'due';
+                });
+                saveData();
+                showToast(`${nextMonth} মাসের বিল জেনারেট হয়েছে!`);
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Data Backup & Restore
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ customers, receiptSettings }));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `wifi_manager_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importDataJSON(e) {
+            const fileReader = new FileReader();
+            fileReader.onload = function (event) {
+                try {
+                    const obj = JSON.parse(event.target.result);
+                    if (obj.customers) customers = obj.customers;
+                    if (obj.receiptSettings) receiptSettings = obj.receiptSettings;
+                    saveData();
+                    showToast('ব্যাকআপ সফলভাবে রিস্টোর হয়েছে!');
+                } catch (err) {
+                    showToast('অকার্যকর ফাইল ফর্ম্যাট!');
+                }
+            };
+            fileReader.readAsText(e.target.files[0]);
+        }
+
+        // Helper Toast Notification
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center space-x-2 animate-bounce pointer-events-auto';
+            toast.innerHTML = `<i class="fa-solid fa-circle-info text-cyan-400 mr-2"></i> ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Initialize Chart.js Bar Chart
+        function initChart() {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর'],
+                    datasets: [
+                        {
+                            label: 'আয় (টাকা)',
+                            data: [12000, 15000, 14000, 16500, 17500, 18500],
+                            backgroundColor: '#0284c7',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'বকেয়া (টাকা)',
+                            data: [3000, 2500, 4000, 2000, 3000, 3500],
+                            backgroundColor: '#f43f5e',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
